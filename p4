@@ -9,7 +9,7 @@
  $ns color 1 Blue
  $n0 label "Server"
  $n1 label "Client"
- USN: 1NT22CS057
+
  $ns duplex-link $n0 $n1 10Mb 22ms DropTail
  $ns duplex-link-op $n0 $n1 orient right
  set tcp1 [new Agent/TCP]
@@ -24,7 +24,7 @@
  proc finish {} {
  global ns tf nf
  $ns flush-trace
- Batch: 5 A  2nd 
+ 
 close $tf
  close $nf
  exec nam 4.nam &
