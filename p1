@@ -1,0 +1,76 @@
+set ns [new Simulator]
+ set tf [open 1.tr w]
+ $ns trace-all $tf
+ set nf [open 1.nam w]
+ $ns namtrace-all $nf
+ $ns color 1 Blue
+ $ns color 2 Red
+ set n0 [$ns node]
+ set n1 [$ns node]
+ set n2 [$ns node]
+ set n3 [$ns node]
+ #create links between nodes,set bandwidth,delay & queue
+ $ns duplex-link $n0 $n2 2Mb 2ms DropTail
+ $ns duplex-link $n1 $n2 2Mb 2ms DropTail
+ $ns duplex-link $n2 $n3 0.4Mb 10ms DropTail
+ $ns queue-limit $n2 $n3 5
+ #create sender udp agent & attach to node n0
+ set udp1 [new Agent/UDP]
+ $ns attach-agent $n0 $udp1
+ $udp1 set fid_ 2
+ #create receiver udp agent & attach to node n3
+ set null1 [new Agent/Null]
+ $ns attach-agent $n3 $null1
+ #connect sender & receiver udp agent
+ $ns connect $udp1 $null1
+ #create cbr(continuous bitrate)application and attach it to udp
+ set cbr1 [new Application/Traffic/CBR]
+ $cbr1 attach-agent $udp1
+ #start cbr application at 1.1
+ $ns at 1.1 "$cbr1 start"
+ #create sender tcp agent & attach to node n1
+ set tcp1 [new Agent/TCP]
+ $ns attach-agent $n1 $tcp1
+ $tcp1 set fid_ 1
+ #create receiver tcp agent and attach to node n3
+ set sink1 [new Agent/TCPSink]
+ $ns attach-agent $n3 $sink1
+#connect sender tcp and receiver tcp
+ $ns connect $tcp1 $sink1
+ #create ftp application and attach it to tcp
+ set ftp1 [new Application/FTP]
+ $ftp1 attach-agent $tcp1
+ #start ftp application at 0.1 and stop at 10.0
+ $ns at 0.1 "$ftp1 start"
+ $ns at 10.0 "finish"
+ #release the resources{tf,nf} and send all the traces to respective files
+ proc finish {} {
+ global ns tf nf
+ $ns flush-trace
+ close $tf
+ close $nf
+ puts "running nam...."
+ exec nam 1.nam &
+ exit 0
+ }
+ $ns run
+ #awk script to display packet drop count at tcp and udp
+ BEGIN{
+ tcp_count=0;
+ udp_count=0;
+ tcp_r=0;
+ udp_r=0;
+ }{
+ if($1=="d" && $5=="tcp")
+ tcp_count++;
+ if($1=="d" && $5=="cbr")
+ udp_count++;
+ if($1=="r" && $5=="tcp")
+ tcp_r++;
+ if($1=="r" && $5=="cbr")
+ udp_r++;
+ }END{
+ printf("No. of tcp packets dropped (TCP): %d \n",tcp_count);
+ printf("No. of udp packets dropped (UDP): %d \n",udp_count);
+ printf("No. of tcp packets received (TCP): %d \n",tcp_r);
+ printf("No. of udp packets received (UDP): %d \n",udp_r);}
